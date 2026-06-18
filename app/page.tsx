@@ -225,6 +225,10 @@ export default function Home() {
             {authMode === 'login' ? 'Log in' : 'Create account'}
           </button>
         </div>
+        <p className="text-xs text-center text-gray-400 mt-6">
+          Not sure yet?{' '}
+          <a href="/demo" className="underline underline-offset-2 hover:text-gray-600">Browse the demo</a>
+        </p>
       </div>
     </div>
   )

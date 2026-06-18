@@ -16,12 +16,18 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { system, user: userMsg } = await req.json()
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    system,
-    messages: [{ role: 'user', content: userMsg }],
-  })
-  const text = message.content[0].type === 'text' ? message.content[0].text : ''
-  return NextResponse.json({ text })
+
+  try {
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1024,
+      system,
+      messages: [{ role: 'user', content: userMsg }],
+    })
+    const text = message.content[0].type === 'text' ? message.content[0].text : ''
+    return NextResponse.json({ text })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Anthropic API error'
+    return NextResponse.json({ error: message }, { status: 502 })
+  }
 }

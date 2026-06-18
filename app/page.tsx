@@ -78,7 +78,8 @@ export default function Home() {
   }, [session])
 
   async function fetchContacts() {
-    const { data } = await supabase.from('contacts').select('*').order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('contacts').select('*').order('created_at', { ascending: false })
+    if (error) console.error('Failed to fetch contacts:', error.message)
     setContacts(data || [])
     setLoading(false)
   }
@@ -114,26 +115,33 @@ export default function Home() {
   async function deleteAccount() {
     setDeleteLoading(true)
     setDeleteError('')
-    const res = await fetch('/api/delete-account', { method: 'DELETE' })
-    if (!res.ok) {
-      const body = await res.json()
-      setDeleteError(body.error || 'Something went wrong.')
+    try {
+      const res = await fetch('/api/delete-account', { method: 'DELETE' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        setDeleteError(body.error || 'Something went wrong.')
+        setDeleteLoading(false)
+        return
+      }
+      await supabase.auth.signOut()
+      setShowDeleteModal(false)
+    } catch {
+      setDeleteError('Network error. Please try again.')
       setDeleteLoading(false)
-      return
     }
-    await supabase.auth.signOut()
   }
 
   async function addContact() {
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('contacts').insert([{ ...form, user_id: user?.id }])
+    const { error } = await supabase.from('contacts').insert([{ ...form }])
+    if (error) { alert('Failed to save contact: ' + error.message); return }
     setForm({ name: '', role: '', company: '', event: '', heat: 'warm', tags: '', notes: '', advice: '', next_action: '' })
     setShowForm(false)
     fetchContacts()
   }
 
   async function deleteContact(id: number) {
-    await supabase.from('contacts').delete().eq('id', id)
+    const { error } = await supabase.from('contacts').delete().eq('id', id)
+    if (error) { alert('Failed to delete contact: ' + error.message); return }
     fetchContacts()
   }
 
@@ -143,6 +151,10 @@ export default function Home() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ system, user }),
     })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || `API error ${res.status}`)
+    }
     const data = await res.json()
     return data.text
   }
@@ -176,8 +188,7 @@ export default function Home() {
   }
 
   async function saveDebriefContact(i: number, c: ExtractedContact) {
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('contacts').insert([{
+    const { error } = await supabase.from('contacts').insert([{
       name: c.name,
       role: c.enriched_role || c.role,
       company: c.company,
@@ -186,8 +197,8 @@ export default function Home() {
       heat: c.heat,
       tags: c.tags?.join(', '),
       next_action: c.linkedin_message,
-      user_id: user?.id,
     }])
+    if (error) { alert('Failed to save contact: ' + error.message); return }
     setDebriefSaved(s => ({ ...s, [i]: true }))
     fetchContacts()
   }

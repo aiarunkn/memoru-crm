@@ -56,6 +56,12 @@ export default function Home() {
   const [debriefLoading, setDebriefLoading] = useState(false)
   const [debriefSaved, setDebriefSaved] = useState<Record<number, boolean>>({})
 
+  // delete account state
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
@@ -93,6 +99,29 @@ export default function Home() {
   async function handleSignOut() {
     await supabase.auth.signOut()
     setContacts([])
+  }
+
+  function exportData() {
+    const blob = new Blob([JSON.stringify(contacts, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `memoru-export-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function deleteAccount() {
+    setDeleteLoading(true)
+    setDeleteError('')
+    const res = await fetch('/api/delete-account', { method: 'DELETE' })
+    if (!res.ok) {
+      const body = await res.json()
+      setDeleteError(body.error || 'Something went wrong.')
+      setDeleteLoading(false)
+      return
+    }
+    await supabase.auth.signOut()
   }
 
   async function addContact() {
@@ -195,6 +224,8 @@ export default function Home() {
         <h1 className="text-2xl font-semibold">memoru</h1>
         <div className="flex items-center gap-3">
           <span className="text-xs text-gray-400">{session.user.email}</span>
+          <button onClick={exportData} className="text-xs text-gray-400 hover:text-gray-700">Export data</button>
+          <button onClick={() => { setShowDeleteModal(true); setDeleteConfirmText(''); setDeleteError('') }} className="text-xs text-red-300 hover:text-red-500">Delete account</button>
           <button onClick={handleSignOut} className="text-xs text-gray-400 hover:text-gray-700">Sign out</button>
           <button onClick={() => { setShowDebrief(!showDebrief); setShowForm(false) }} className="px-4 py-2 border border-black text-black rounded-lg text-sm">+ Event notes</button>
           <button onClick={() => { setShowForm(!showForm); setShowDebrief(false) }} className="px-4 py-2 bg-black text-white rounded-lg text-sm">+ Add contact</button>
@@ -288,6 +319,41 @@ export default function Home() {
           <div className="col-span-2 flex gap-3">
             <button onClick={addContact} className="px-4 py-2 bg-black text-white rounded-lg text-sm">Save</button>
             <button onClick={() => setShowForm(false)} className="px-4 py-2 text-gray-500 text-sm">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-xl">
+            <h2 className="font-semibold text-lg mb-2">Delete your account</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              This permanently deletes your account and all your contacts. There is no undo.
+            </p>
+            <p className="text-xs text-gray-400 mb-2">Type <span className="font-mono font-medium text-gray-700">delete my account</span> to confirm</p>
+            <input
+              className="w-full border rounded-lg px-3 py-2 text-sm mb-4"
+              placeholder="delete my account"
+              value={deleteConfirmText}
+              onChange={e => setDeleteConfirmText(e.target.value)}
+            />
+            {deleteError && <p className="text-xs text-red-500 mb-3">{deleteError}</p>}
+            <div className="flex gap-3">
+              <button
+                onClick={deleteAccount}
+                disabled={deleteConfirmText !== 'delete my account' || deleteLoading}
+                className="flex-1 py-2 bg-red-600 text-white rounded-lg text-sm disabled:opacity-40"
+              >
+                {deleteLoading ? 'Deleting...' : 'Delete everything'}
+              </button>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleteLoading}
+                className="px-4 py-2 text-gray-500 text-sm"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -2,19 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-
-type Contact = {
-  id: number
-  name: string
-  role: string
-  company: string
-  event: string
-  heat: string
-  tags: string
-  notes: string
-  advice: string
-  next_action: string
-}
+import type { Contact } from '../lib/types'
 
 const DEMO_CONTACTS: Contact[] = [
   {
@@ -79,10 +67,44 @@ const DEMO_CONTACTS: Contact[] = [
   },
 ]
 
-const heatColor = (heat: string) =>
-  heat === 'hot' ? 'bg-red-100 text-red-700' :
-  heat === 'warm' ? 'bg-amber-100 text-amber-700' :
-  'bg-gray-100 text-gray-600'
+const HEAT_CONFIG = {
+  hot:  { bg: 'rgba(240,115,106,0.14)', text: '#ffb4ad', dot: '#f0736a' },
+  warm: { bg: 'rgba(224,169,74,0.14)',  text: '#f2cf87', dot: '#e0a94a' },
+  cold: { bg: 'rgba(106,165,240,0.14)', text: '#a8caf7', dot: '#6aa5f0' },
+} as const
+
+function HeatBadge({ heat }: { heat: string }) {
+  const cfg = HEAT_CONFIG[heat as keyof typeof HEAT_CONFIG] ?? HEAT_CONFIG.cold
+  return (
+    <span
+      className="flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full"
+      style={{ background: cfg.bg, color: cfg.text }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.dot }} />
+      {heat}
+    </span>
+  )
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  async function handleCopy() {
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+  return (
+    <button
+      onClick={handleCopy}
+      className="text-[10px] text-[#8b8b93] hover:text-[#d4d4d8] transition-colors"
+    >
+      {copied ? 'Copied!' : 'Copy'}
+    </button>
+  )
+}
+
+const inputCls = 'w-full bg-[#0e0e10] border border-[#2a2a30] text-[#e4e4e7] placeholder:text-[#52525b] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#52525b]'
+const labelCls = 'text-xs text-[#71717a] mb-1 block'
 
 export default function DemoPage() {
   const [showForm, setShowForm] = useState(false)
@@ -99,210 +121,205 @@ export default function DemoPage() {
   const gate = () => setShowSignupPrompt(true)
 
   return (
-    <main className="max-w-4xl mx-auto p-6">
+    <div className="bg-[#09090b] min-h-screen">
+      <div className="max-w-2xl mx-auto px-4 py-6">
 
-      {/* demo banner */}
-      <div className="mb-6 flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-        <p className="text-sm text-amber-800">
-          <span className="font-medium">Demo mode</span> — browse freely. Sign up to save your own contacts.
-        </p>
-        <Link href="/" className="text-sm font-medium text-black underline underline-offset-2 whitespace-nowrap ml-4">
-          Sign up free →
-        </Link>
-      </div>
-
-      {/* header */}
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-semibold">memoru</h1>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => { setShowDebrief(!showDebrief); setShowForm(false) }}
-            className="px-4 py-2 border border-black text-black rounded-lg text-sm"
+        {/* demo banner */}
+        <div className="mb-6 flex items-center justify-between bg-[rgba(224,169,74,0.08)] border border-[rgba(224,169,74,0.18)] rounded-xl px-4 py-3">
+          <p className="text-sm text-[#f2cf87]">
+            <span className="font-medium">Demo mode</span> — browse freely. Sign up to save your own contacts.
+          </p>
+          <Link
+            href="/"
+            className="text-sm font-medium text-[#f2cf87] underline underline-offset-2 whitespace-nowrap ml-4 hover:text-[#fef3c7]"
           >
-            + Event notes
-          </button>
-          <button
-            onClick={() => { setShowForm(!showForm); setShowDebrief(false) }}
-            className="px-4 py-2 bg-black text-white rounded-lg text-sm"
-          >
-            + Add contact
-          </button>
+            Sign up free →
+          </Link>
         </div>
-      </div>
 
-      {/* event debrief panel — browsable, run button gates to signup */}
-      {showDebrief && (
-        <div className="border rounded-xl p-6 mb-8">
-          <h2 className="font-medium mb-1">event debrief</h2>
-          <p className="text-xs text-gray-400 mb-4">dump your notes — agent extracts contacts, researches them, drafts outreach</p>
-          <div className="grid grid-cols-2 gap-4 mb-4">
+        {/* header */}
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl font-semibold text-[#f4f4f5]">memoru</h1>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => { setShowDebrief(!showDebrief); setShowForm(false) }}
+              className="px-4 py-2 border border-[#2a2a30] text-[#d4d4d8] rounded-lg text-sm hover:border-[#3f3f46]"
+            >
+              + Event notes
+            </button>
+            <button
+              onClick={() => { setShowForm(!showForm); setShowDebrief(false) }}
+              className="px-4 py-2 bg-[#fafafa] text-[#09090b] rounded-lg text-sm font-medium hover:bg-white"
+            >
+              + Add contact
+            </button>
+          </div>
+        </div>
+
+        {/* event debrief panel */}
+        {showDebrief && (
+          <div className="bg-[#141416] border border-[#26262b] rounded-2xl p-6 mb-8">
+            <h2 className="font-medium text-[#f4f4f5] mb-1">event debrief</h2>
+            <p className="text-xs text-[#71717a] mb-4">dump your notes — agent extracts contacts, researches them, drafts outreach</p>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="col-span-2">
+                <label className={labelCls}>your notes</label>
+                <textarea
+                  className={inputCls}
+                  rows={4}
+                  placeholder="Met Sarah Kim, VC at Sequoia. Talked about AI agents. Also spoke with James from DeepMind..."
+                  value={debriefNotes}
+                  onChange={e => setDebriefNotes(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>event name</label>
+                <input className={inputCls} placeholder="AI Summit SF" value={debriefEvent} onChange={e => setDebriefEvent(e.target.value)} />
+              </div>
+              <div>
+                <label className={labelCls}>your name & role</label>
+                <input className={inputCls} placeholder="Arun, founder of Memoru" value={debriefSender} onChange={e => setDebriefSender(e.target.value)} />
+              </div>
+            </div>
+            <button onClick={gate} className="px-4 py-2 bg-[#fafafa] text-[#09090b] rounded-lg text-sm font-medium">
+              extract + research contacts →
+            </button>
+            <p className="text-xs text-[#52525b] mt-2">Sign up to run the AI debrief on your own notes.</p>
+          </div>
+        )}
+
+        {/* add contact form */}
+        {showForm && (
+          <div className="bg-[#141416] border border-[#26262b] rounded-2xl p-6 mb-8 grid grid-cols-2 gap-4">
+            {([['name', 'Name'], ['role', 'Role'], ['company', 'Company'], ['event', 'Where you met']] as const).map(([key, label]) => (
+              <div key={key}>
+                <label className={labelCls}>{label}</label>
+                <input
+                  className={inputCls}
+                  value={form[key]}
+                  onChange={e => setForm({ ...form, [key]: e.target.value })}
+                />
+              </div>
+            ))}
+            <div>
+              <label className={labelCls}>Heat</label>
+              <select
+                className={inputCls}
+                value={form.heat}
+                onChange={e => setForm({ ...form, heat: e.target.value })}
+              >
+                <option value="hot">Hot</option>
+                <option value="warm">Warm</option>
+                <option value="cold">Cold</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Tags</label>
+              <input className={inputCls} value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} />
+            </div>
             <div className="col-span-2">
-              <label className="text-xs text-gray-500 mb-1 block">your notes</label>
-              <textarea
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                rows={4}
-                placeholder="Met Sarah Kim, VC at Sequoia. Talked about AI agents. Also spoke with James from DeepMind..."
-                value={debriefNotes}
-                onChange={e => setDebriefNotes(e.target.value)}
-              />
+              <label className={labelCls}>Notes</label>
+              <textarea className={inputCls} rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
             </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">event name</label>
-              <input
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                placeholder="AI Summit SF"
-                value={debriefEvent}
-                onChange={e => setDebriefEvent(e.target.value)}
-              />
+            <div className="col-span-2">
+              <label className={labelCls}>Advice they gave you</label>
+              <textarea className={inputCls} rows={2} value={form.advice} onChange={e => setForm({ ...form, advice: e.target.value })} />
             </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">your name & role</label>
-              <input
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                placeholder="Arun, founder of Memoru"
-                value={debriefSender}
-                onChange={e => setDebriefSender(e.target.value)}
-              />
+            <div className="col-span-2">
+              <label className={labelCls}>Next action</label>
+              <input className={inputCls} value={form.next_action} onChange={e => setForm({ ...form, next_action: e.target.value })} />
+            </div>
+            <div className="col-span-2 flex gap-3">
+              <button onClick={gate} className="px-4 py-2 bg-[#fafafa] text-[#09090b] rounded-lg text-sm font-medium">Save</button>
+              <button onClick={() => setShowForm(false)} className="px-4 py-2 text-[#71717a] text-sm">Cancel</button>
             </div>
           </div>
-          <button onClick={gate} className="px-4 py-2 bg-black text-white rounded-lg text-sm">
-            extract + research contacts →
-          </button>
-          <p className="text-xs text-gray-400 mt-2">Sign up to run the AI debrief on your own notes.</p>
-        </div>
-      )}
+        )}
 
-      {/* add contact form — fields are live, Save gates to signup */}
-      {showForm && (
-        <div className="border rounded-xl p-6 mb-8 grid grid-cols-2 gap-4">
-          {[['name','Name'],['role','Role'],['company','Company'],['event','Where you met']].map(([key, label]) => (
-            <div key={key}>
-              <label className="text-xs text-gray-500 mb-1 block">{label}</label>
-              <input
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                value={(form as Record<string, string>)[key]}
-                onChange={e => setForm({ ...form, [key]: e.target.value })}
-              />
+        {/* signup prompt modal */}
+        {showSignupPrompt && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+            <div className="bg-[#141416] border border-[#26262b] rounded-2xl p-8 w-full max-w-sm shadow-2xl">
+              <h2 className="font-semibold text-lg text-[#f4f4f5] mb-2">Sign up to save your data</h2>
+              <p className="text-sm text-[#a1a1aa] mb-6">
+                Your contacts live in your account — not just this browser. Free to start.
+              </p>
+              <div className="flex flex-col gap-3">
+                <Link
+                  href="/"
+                  className="w-full py-2 bg-[#fafafa] text-[#09090b] rounded-lg text-sm text-center font-medium"
+                >
+                  Create free account
+                </Link>
+                <Link
+                  href="/"
+                  className="w-full py-2 border border-[#2a2a30] text-[#d4d4d8] rounded-lg text-sm text-center"
+                >
+                  Log in
+                </Link>
+                <button
+                  onClick={() => setShowSignupPrompt(false)}
+                  className="text-xs text-[#52525b] mt-1 hover:text-[#71717a]"
+                >
+                  Continue browsing demo
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* contacts list */}
+        <div className="grid gap-4">
+          {DEMO_CONTACTS.map(c => (
+            <div key={c.id} className="bg-[#141416] border border-[#26262b] rounded-2xl p-5">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2 className="font-medium text-[#f4f4f5]">{c.name}</h2>
+                    <HeatBadge heat={c.heat} />
+                  </div>
+                  <p className="text-sm text-[#a1a1aa]">{c.role}{c.company ? ` · ${c.company}` : ''}</p>
+                  <p className="text-xs text-[#71717a] mt-0.5">{c.event}</p>
+                </div>
+                <button onClick={gate} className="text-[#3f3f46] hover:text-[#f0736a] text-sm transition-colors">×</button>
+              </div>
+
+              {c.next_action && (
+                <div className="mt-4 bg-[#0e0e10] border border-[#2a2a30] rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] uppercase tracking-wider font-medium text-[#8b8b93]">
+                      Next Action · Draft Message
+                    </span>
+                    <CopyButton text={c.next_action} />
+                  </div>
+                  <p className="text-sm text-[#e4e4e7] leading-relaxed">{c.next_action}</p>
+                </div>
+              )}
+
+              {c.notes && (
+                <p className="text-sm text-[#c4c4cc] mt-3 leading-relaxed">{c.notes}</p>
+              )}
+
+              {c.advice && (
+                <p className="text-sm italic text-[#d4d4d8] mt-3 pl-4 border-l-2 border-[#4b4b52]">
+                  "{c.advice}"
+                </p>
+              )}
+
+              {c.tags && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {c.tags.split(',').map((t: string) => (
+                    <span key={t} className="text-xs bg-[#232329] text-[#b4b4bc] px-2.5 py-0.5 rounded-full">
+                      {t.trim()}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Heat</label>
-            <select
-              className="w-full border rounded-lg px-3 py-2 text-sm"
-              value={form.heat}
-              onChange={e => setForm({ ...form, heat: e.target.value })}
-            >
-              <option value="hot">Hot</option>
-              <option value="warm">Warm</option>
-              <option value="cold">Cold</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Tags</label>
-            <input
-              className="w-full border rounded-lg px-3 py-2 text-sm"
-              value={form.tags}
-              onChange={e => setForm({ ...form, tags: e.target.value })}
-            />
-          </div>
-          <div className="col-span-2">
-            <label className="text-xs text-gray-500 mb-1 block">Notes</label>
-            <textarea
-              className="w-full border rounded-lg px-3 py-2 text-sm"
-              rows={2}
-              value={form.notes}
-              onChange={e => setForm({ ...form, notes: e.target.value })}
-            />
-          </div>
-          <div className="col-span-2">
-            <label className="text-xs text-gray-500 mb-1 block">Advice they gave you</label>
-            <textarea
-              className="w-full border rounded-lg px-3 py-2 text-sm"
-              rows={2}
-              value={form.advice}
-              onChange={e => setForm({ ...form, advice: e.target.value })}
-            />
-          </div>
-          <div className="col-span-2">
-            <label className="text-xs text-gray-500 mb-1 block">Next action</label>
-            <input
-              className="w-full border rounded-lg px-3 py-2 text-sm"
-              value={form.next_action}
-              onChange={e => setForm({ ...form, next_action: e.target.value })}
-            />
-          </div>
-          <div className="col-span-2 flex gap-3">
-            <button onClick={gate} className="px-4 py-2 bg-black text-white rounded-lg text-sm">Save</button>
-            <button onClick={() => setShowForm(false)} className="px-4 py-2 text-gray-500 text-sm">Cancel</button>
-          </div>
         </div>
-      )}
 
-      {/* signup prompt modal */}
-      {showSignupPrompt && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-xl">
-            <h2 className="font-semibold text-lg mb-2">Sign up to save your data</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Your contacts live in your account — not just this browser. Free to start.
-            </p>
-            <div className="flex flex-col gap-3">
-              <Link
-                href="/"
-                className="w-full py-2 bg-black text-white rounded-lg text-sm text-center"
-              >
-                Create free account
-              </Link>
-              <Link
-                href="/"
-                className="w-full py-2 border rounded-lg text-sm text-center text-gray-600"
-              >
-                Log in
-              </Link>
-              <button
-                onClick={() => setShowSignupPrompt(false)}
-                className="text-xs text-gray-400 mt-1"
-              >
-                Continue browsing demo
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* contacts list — identical markup to real app */}
-      <div className="grid gap-4">
-        {DEMO_CONTACTS.map(c => (
-          <div key={c.id} className="border rounded-xl p-5">
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <h2 className="font-medium">{c.name}</h2>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${heatColor(c.heat)}`}>{c.heat}</span>
-                </div>
-                <p className="text-sm text-gray-500">{c.role}{c.company ? ` · ${c.company}` : ''}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{c.event}</p>
-              </div>
-              <button onClick={gate} className="text-gray-300 hover:text-red-400 text-sm">×</button>
-            </div>
-            {c.next_action && (
-              <div className="mt-3 p-3 bg-gray-50 rounded-lg text-sm">
-                <span className="text-xs text-gray-400 block mb-1">next action</span>
-                {c.next_action}
-              </div>
-            )}
-            {c.notes && <p className="text-sm text-gray-600 mt-3">{c.notes}</p>}
-            {c.advice && <p className="text-sm italic text-gray-500 mt-2 border-l-2 pl-3">"{c.advice}"</p>}
-            {c.tags && (
-              <div className="flex gap-2 mt-3">
-                {c.tags.split(',').map((t: string) => (
-                  <span key={t} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{t.trim()}</span>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
       </div>
-    </main>
+    </div>
   )
 }
